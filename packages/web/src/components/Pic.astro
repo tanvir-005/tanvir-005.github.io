@@ -1,0 +1,7 @@
+---
+import { dims } from '../lib/content'
+interface Props { src: string; alt: string; class?: string; eager?: boolean }
+const { src, alt, class: cls, eager = false } = Astro.props
+const d = dims(src)
+---
+<img src={src} alt={alt} class={cls} width={d?.w} height={d?.h} loading={eager ? 'eager' : 'lazy'} decoding="async" fetchpriority={eager ? 'high' : undefined} />

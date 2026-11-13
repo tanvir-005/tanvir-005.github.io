@@ -1,0 +1,8 @@
+node_modules
+dist
+.wrangler
+.dev.vars
+.env
+packages/web/src/data/content.json
+packages/web/public/media
+packages/web/public/cv.pdf

@@ -1,0 +1,72 @@
+---
+import Base from '../../layouts/Base.astro'
+import Pic from '../../components/Pic.astro'
+import { COLLECTIONS, byType, hasDetail, metaFor, linksFor, imageAlt, truncate, profile, type Entry } from '../../lib/content'
+import { renderMarkdown } from '../../lib/markdown'
+
+export function getStaticPaths() {
+  return Object.entries(COLLECTIONS).flatMap(([collection, c]) =>
+    byType(c.type).filter(hasDetail).map((entry) => ({ params: { collection, slug: entry.slug }, props: { entry, collection } }))
+  )
+}
+
+const { entry, collection } = Astro.props as { entry: Entry; collection: string }
+const c = COLLECTIONS[collection]
+const { html } = await renderMarkdown(entry.body_md)
+const facts = metaFor(entry)
+const links = linksFor(entry)
+const site = Astro.site!.toString().replace(/\/$/, '')
+const url = `${site}/${collection}/${entry.slug}/`
+const jsonLd: object[] = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: site + '/' },
+      { '@type': 'ListItem', position: 2, name: c.title, item: `${site}/${collection}/` },
+      { '@type': 'ListItem', position: 3, name: entry.title, item: url }
+    ]
+  }
+]
+if (entry.type === 'project') {
+  jsonLd.push({
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareSourceCode',
+    name: entry.title,
+    description: truncate(entry.summary, 300),
+    codeRepository: entry.data.github || undefined,
+    programmingLanguage: entry.data.stack || undefined,
+    author: { '@type': 'Person', name: profile.name }
+  })
+}
+---
+<Base title={entry.title} description={entry.summary || entry.title} image={entry.image || undefined} jsonLd={jsonLd}>
+  <article class="wrap page">
+    <header class="page-head">
+      <p class="crumbs"><a href="/">Home</a> / <a href={`/${collection}/`}>{c.title}</a></p>
+      <h1>{entry.title}</h1>
+      {entry.data.subtitle && <p class="lead">{entry.data.subtitle}</p>}
+    </header>
+    <div class="detail">
+      <div>
+        {entry.image && <Pic class="cover" src={entry.image} alt={imageAlt(entry)} eager />}
+        {entry.summary && <p class="prose">{entry.summary}</p>}
+        {html && <div class="prose" style="margin-top:1.25em" set:html={html} />}
+      </div>
+      {(facts.length > 0 || links.length > 0) && (
+        <aside class="spec" aria-label="Details">
+          {facts.length > 0 && (
+            <dl>
+              {facts.map((f) => (<div><dt>{f.label}</dt><dd>{f.value}</dd></div>))}
+            </dl>
+          )}
+          {links.length > 0 && (
+            <div class="actions">
+              {links.map((l, i) => <a class={i === 0 ? 'btn' : 'btn quiet'} href={l.href} rel="noopener">{l.label}</a>)}
+            </div>
+          )}
+        </aside>
+      )}
+    </div>
+  </article>
+</Base>

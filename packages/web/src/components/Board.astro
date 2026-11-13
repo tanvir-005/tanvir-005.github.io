@@ -1,0 +1,36 @@
+---
+import { hrefFor, rankNumber, rankParts, shortDate, tierOf, TIERS, type Entry } from '../lib/content'
+interface Props { contests: Entry[]; heading?: string; showLegend?: boolean }
+const { contests, heading = 'Contest record', showLegend = true } = Astro.props
+const solo = contests.filter((c) => c.data.team === 'Individual').length
+---
+<section class="board" aria-label={heading}>
+  <div class="board-head">
+    <h2>{heading}</h2>
+    <p>{contests.length} contests, newest first{solo ? `, ${solo} as an individual` : ''}. Tap a tile for details.</p>
+  </div>
+  <ul class="tiles">
+    {contests.map((c) => {
+      const r = rankParts(c.data.rank)
+      const tier = tierOf(rankNumber(c.data.rank))
+      const href = hrefFor('contests', c)
+      const Tag = href ? 'a' : 'div'
+      return (
+        <li>
+          <Tag class={`tile tier-${tier}`} href={href ?? undefined} aria-label={`${c.title}, rank ${c.data.rank}, ${c.date}`}>
+            <span class="rank">{r.n}{r.s && <sup>{r.s}</sup>}</span>
+            <span>
+              <span class="name">{c.title}</span>
+              <span class="when">{shortDate(c.date)}</span>
+            </span>
+          </Tag>
+        </li>
+      )
+    })}
+  </ul>
+  {showLegend && (
+    <ul class="legend" aria-label="Rank colour key">
+      {TIERS.map((t) => <li><i class={`tier-${t.t}`}></i>{t.label}</li>)}
+    </ul>
+  )}
+</section>

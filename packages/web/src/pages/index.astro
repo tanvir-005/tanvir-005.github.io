@@ -1,0 +1,211 @@
+---
+import Base from '../layouts/Base.astro'
+import Pic from '../components/Pic.astro'
+import Board from '../components/Board.astro'
+import { profile, cv, cf, byType, hrefFor, imageAlt, truncate } from '../lib/content'
+
+const site = Astro.site!.toString().replace(/\/$/, '')
+const contests = byType('contest')
+const projects = byType('project')
+const certificates = byType('certificate')
+const education = byType('education')
+const experience = byType('experience')
+const achievements = byType('achievement')
+const skills = byType('skillgroup')
+
+const facts: [string, string][] = []
+if (cf) facts.push(['Codeforces', `${cf.rank}, best rating ${cf.maxRating}`])
+if (contests.length) facts.push(['Contests', `${contests.length} programming contests`])
+if (education[0]) facts.push(['Education', [education[0].title, education[0].data.grade].filter(Boolean).join(', ')])
+if (experience[0]) facts.push(['Currently', experience[0].title])
+
+const sameAs = [profile.github, profile.linkedin, profile.facebook, profile.codeforces ? `https://codeforces.com/profile/${profile.codeforces}` : ''].filter(Boolean)
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: profile.name,
+    url: site + '/',
+    image: profile.image ? (profile.image.startsWith('http') ? profile.image : site + profile.image) : undefined,
+    jobTitle: 'Competitive programmer and software engineer',
+    description: profile.description,
+    email: profile.email ? `mailto:${profile.email}` : undefined,
+    alumniOf: profile.institution ? { '@type': 'CollegeOrUniversity', name: profile.institution } : undefined,
+    knowsAbout: skills.flatMap((s) => s.data.items || []),
+    sameAs
+  },
+  { '@context': 'https://schema.org', '@type': 'WebSite', name: profile.name, url: site + '/' }
+]
+---
+<Base jsonLd={jsonLd}>
+  <div class="wrap">
+    <section class="hero" aria-labelledby="top">
+      <div class="hero-top">
+        <h1 id="top">{profile.name}</h1>
+        {profile.image && <Pic class="portrait" src={profile.image} alt={profile.imageAlt || profile.name} eager />}
+      </div>
+      <div class="hero-grid">
+        <div>
+          <p class="role">{profile.headline}</p>
+          <p class="bio">{profile.bio}</p>
+          <div class="actions">
+            {cv && <a class="btn" href={cv.url} data-track="/cv.pdf">Download CV (PDF)</a>}
+            <a class="btn quiet" href="#contact">Get in touch</a>
+          </div>
+        </div>
+        {facts.length > 0 && (
+          <dl class="facts-list">
+            {facts.map(([k, v]) => (<><dt>{k}</dt><dd>{v}</dd></>))}
+          </dl>
+        )}
+      </div>
+    </section>
+
+    {contests.length > 0 && <Board contests={contests} />}
+  </div>
+
+  {projects.length > 0 && (
+    <section class="block" id="projects" aria-labelledby="h-projects">
+      <div class="wrap">
+        <div class="block-head">
+          <h2 id="h-projects">Projects</h2>
+          <p class="lead">What I built, why, and with which tools.</p>
+        </div>
+        <ul class="work-list">
+          {projects.map((p) => {
+            const href = hrefFor('projects', p)
+            const Tag = href ? 'a' : 'div'
+            return (
+              <li>
+                <Tag class="work" href={href ?? undefined}>
+                  <div>
+                    <h3>{p.title}</h3>
+                    {p.data.subtitle && <p class="sub">{p.data.subtitle}</p>}
+                    {(p.data.stack || []).length > 0 && <p class="stack">{p.data.stack.join(', ')}</p>}
+                  </div>
+                  <p class="desc">{truncate(p.summary, 260)}</p>
+                </Tag>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    </section>
+  )}
+
+  {achievements.length > 0 && (
+    <section class="block alt" id="problem-solving" aria-labelledby="h-ps">
+      <div class="wrap">
+        <div class="block-head">
+          <h2 id="h-ps">Problem solving</h2>
+          <p class="lead">Best performances in Codeforces rounds, with links to the standings.</p>
+        </div>
+        <ul class="work-list">
+          {achievements.map((a) => (
+            <li>
+              <a class="work" href={a.data.link} rel="noopener">
+                <div><h3>{a.title}</h3></div>
+                <p class="desc">{a.data.result}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )}
+
+  <section class="block" id="background" aria-labelledby="h-bg">
+    <div class="wrap">
+      <div class="block-head">
+        <h2 id="h-bg">Education and leadership</h2>
+      </div>
+      <div class="duo">
+        {education.length > 0 && (
+          <div>
+            <h3>Education</h3>
+            <ul class="timeline">
+              {education.map((e) => (
+                <li>
+                  <span class="when">{e.date}</span>
+                  <span><strong>{e.title}</strong><span class="sub">{[e.data.institution, e.data.grade].filter(Boolean).join(', ')}</span></span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {experience.length > 0 && (
+          <div>
+            <h3>Leadership and mentoring</h3>
+            <ul class="timeline">
+              {experience.map((e) => {
+                const href = hrefFor('experience', e)
+                return (
+                  <li>
+                    <span class="when">{e.date}</span>
+                    <span>
+                      <strong>{href ? <a href={href}>{e.title}</a> : e.title}</strong>
+                      {e.data.organization && <span class="sub">{e.data.organization}</span>}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+
+  {skills.length > 0 && (
+    <section class="block alt" id="skills" aria-labelledby="h-skills">
+      <div class="wrap">
+        <div class="block-head"><h2 id="h-skills">Skills</h2></div>
+        <dl class="skill-grid">
+          {skills.map((s) => (<div><dt>{s.title}</dt><dd>{(s.data.items || []).join(', ')}</dd></div>))}
+        </dl>
+      </div>
+    </section>
+  )}
+
+  {certificates.length > 0 && (
+    <section class="block" id="certificates" aria-labelledby="h-cert">
+      <div class="wrap">
+        <div class="block-head">
+          <h2 id="h-cert">Training and certificates</h2>
+        </div>
+        <ul class="gallery">
+          {certificates.map((c) => {
+            const href = hrefFor('certificates', c)
+            return (
+              <li>
+                <a href={href ?? '#'}>
+                  {c.image && <Pic src={c.image} alt={imageAlt(c)} />}
+                  <h3>{c.title}</h3>
+                  <p>{c.date}</p>
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    </section>
+  )}
+
+  <section class="block alt" id="contact" aria-labelledby="h-contact">
+    <div class="wrap">
+      <div class="block-head">
+        <h2 id="h-contact">Contact</h2>
+        <p class="lead">Email is the fastest way to reach me.</p>
+      </div>
+      {profile.email && <a class="contact-mail" href={`mailto:${profile.email}`}>{profile.email}</a>}
+      <ul class="contact-list">
+        {profile.phone && <li><a href={`tel:${String(profile.phone).replace(/[^+\d]/g, '')}`}>{profile.phone}</a></li>}
+        {profile.github && <li><a href={profile.github} rel="me noopener">GitHub</a></li>}
+        {profile.linkedin && <li><a href={profile.linkedin} rel="me noopener">LinkedIn</a></li>}
+        {profile.facebook && <li><a href={profile.facebook} rel="me noopener">Facebook</a></li>}
+        {profile.codeforces && <li><a href={`https://codeforces.com/profile/${profile.codeforces}`} rel="me noopener">Codeforces</a></li>}
+        {cv && <li><a href={cv.url} data-track="/cv.pdf">CV (PDF)</a></li>}
+      </ul>
+    </div>
+  </section>
+</Base>

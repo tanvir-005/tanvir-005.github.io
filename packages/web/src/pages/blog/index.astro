@@ -1,0 +1,55 @@
+---
+import Base from '../../layouts/Base.astro'
+import { posts, allTags, tagsOf, formatDate, profile } from '../../lib/content'
+const tags = [...allTags().entries()]
+const site = Astro.site!.toString().replace(/\/$/, '')
+const jsonLd = [{ '@context': 'https://schema.org', '@type': 'Blog', name: `${profile.name}: blog`, url: `${site}/blog/`, author: { '@type': 'Person', name: profile.name } }]
+---
+<Base title="Blog" description="Notes on competitive programming, algorithms, software and machine learning." jsonLd={jsonLd}>
+  <div class="wrap page">
+    <header class="page-head">
+      <h1>Blog</h1>
+      <p class="lead">Notes on competitive programming, algorithms, software and machine learning.</p>
+      {tags.length > 0 && (
+        <div class="tagbar" aria-label="Tags">
+          {tags.map(([slug, t]) => <a class="tag" href={`/blog/tags/${slug}/`}>{t.label} ({t.count})</a>)}
+        </div>
+      )}
+      {posts.length > 1 && <input id="q" class="search" type="search" placeholder="Filter posts" aria-label="Filter posts" />}
+    </header>
+    {posts.length === 0 ? (
+      <p class="empty">No posts yet. The first one is on its way.</p>
+    ) : (
+      <ul class="posts" id="post-list">
+        {posts.map((p) => (
+          <li data-text={`${p.title} ${p.summary} ${tagsOf(p).join(' ')}`.toLowerCase()}>
+            <a class="post-link" href={`/blog/${p.slug}/`}>
+              <time class="when" datetime={p.date}>{formatDate(p.date)}</time>
+              <div>
+                <h2>{p.title}</h2>
+                {p.summary && <p>{p.summary}</p>}
+              </div>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+    <p class="empty" id="no-match" hidden>No posts match that filter.</p>
+  </div>
+</Base>
+
+<script>
+  const q = document.getElementById('q') as HTMLInputElement | null
+  const items = [...document.querySelectorAll<HTMLElement>('#post-list li')]
+  const none = document.getElementById('no-match')
+  q?.addEventListener('input', () => {
+    const v = q.value.trim().toLowerCase()
+    let n = 0
+    for (const li of items) {
+      const hit = !v || (li.dataset.text || '').includes(v)
+      li.hidden = !hit
+      if (hit) n++
+    }
+    if (none) none.hidden = n > 0
+  })
+</script>

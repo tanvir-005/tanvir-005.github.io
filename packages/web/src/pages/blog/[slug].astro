@@ -1,0 +1,108 @@
+---
+import Base from '../../layouts/Base.astro'
+import Pic from '../../components/Pic.astro'
+import { posts, profile, formatDate, tagsOf, tagSlug, imageAlt, type Entry } from '../../lib/content'
+import { renderMarkdown, readingMinutes } from '../../lib/markdown'
+
+export function getStaticPaths() {
+  return posts.map((post) => ({ params: { slug: post.slug }, props: { post } }))
+}
+
+const { post } = Astro.props as { post: Entry }
+const { html, toc } = await renderMarkdown(post.body_md)
+const showToc = toc.length >= 3
+const minutes = readingMinutes(post.body_md)
+const site = Astro.site!.toString().replace(/\/$/, '')
+const url = `${site}/blog/${post.slug}/`
+const abs = (u: string) => (u.startsWith('http') ? u : site + u)
+const cover = post.image || ''
+const modified = post.updated_at ? new Date(post.updated_at.replace(' ', 'T') + 'Z').toISOString() : undefined
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description: post.summary,
+    datePublished: post.date,
+    dateModified: modified ?? post.date,
+    image: cover ? [abs(cover)] : undefined,
+    author: { '@type': 'Person', name: profile.name, url: site + '/' },
+    mainEntityOfPage: url,
+    keywords: tagsOf(post).join(', ') || undefined,
+    wordCount: post.body_md.split(/\s+/).filter(Boolean).length
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: site + '/' },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: site + '/blog/' },
+      { '@type': 'ListItem', position: 3, name: post.title, item: url }
+    ]
+  }
+]
+---
+<Base title={post.title} description={post.summary || post.title} image={cover || undefined} type="article" published={post.date} modified={modified} jsonLd={jsonLd}>
+  <article class="wrap page">
+    <header class="page-head">
+      <p class="crumbs"><a href="/">Home</a> / <a href="/blog/">Blog</a></p>
+      <h1>{post.title}</h1>
+      {post.summary && <p class="lead">{post.summary}</p>}
+      <div class="post-meta">
+        <time datetime={post.date}>{formatDate(post.date)}</time>
+        <span>{minutes} min read</span>
+        {tagsOf(post).map((t) => <a class="tag" href={`/blog/tags/${tagSlug(t)}/`}>{t}</a>)}
+      </div>
+    </header>
+    {cover && <Pic class="cover" src={cover} alt={imageAlt(post)} eager />}
+    <div class={`post-layout${showToc ? '' : ' no-toc'}`}>
+      <div class="prose" id="post-body" set:html={html} />
+      {showToc && (
+        <nav class="toc" aria-label="On this page">
+          <p>On this page</p>
+          <ol>
+            {toc.map((t) => <li class={`d${t.depth}`}><a href={`#${t.id}`}>{t.text}</a></li>)}
+          </ol>
+        </nav>
+      )}
+    </div>
+  </article>
+</Base>
+
+<script>
+  // copy buttons on code blocks
+  document.querySelectorAll<HTMLPreElement>('#post-body pre').forEach((pre) => {
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'copy'
+    btn.textContent = 'Copy'
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(pre.querySelector('code')?.innerText ?? pre.innerText)
+        btn.textContent = 'Copied'
+      } catch {
+        btn.textContent = 'Press Ctrl C'
+      }
+      setTimeout(() => (btn.textContent = 'Copy'), 1500)
+    })
+    pre.append(btn)
+  })
+
+  // highlight the heading being read in the table of contents
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('.toc a')]
+  if (links.length) {
+    const byId = new Map(links.map((a) => [a.hash.slice(1), a]))
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            links.forEach((l) => l.classList.remove('on'))
+            byId.get(e.target.id)?.classList.add('on')
+          }
+        }
+      },
+      { rootMargin: '-80px 0px -70% 0px' }
+    )
+    byId.forEach((_a, id) => { const el = document.getElementById(id); if (el) io.observe(el) })
+  }
+</script>

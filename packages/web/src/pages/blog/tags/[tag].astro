@@ -1,0 +1,32 @@
+---
+import Base from '../../../layouts/Base.astro'
+import { posts, allTags, tagsOf, tagSlug, formatDate } from '../../../lib/content'
+
+export function getStaticPaths() {
+  return [...allTags().entries()].map(([tag, t]) => ({ params: { tag }, props: { label: t.label } }))
+}
+const { tag } = Astro.params
+const { label } = Astro.props as { label: string }
+const list = posts.filter((p) => tagsOf(p).some((t) => tagSlug(t) === tag))
+---
+<Base title={`Posts tagged ${label}`} description={`All posts tagged ${label}.`}>
+  <div class="wrap page">
+    <header class="page-head">
+      <p class="crumbs"><a href="/">Home</a> / <a href="/blog/">Blog</a></p>
+      <h1>Tagged {label}</h1>
+    </header>
+    <ul class="posts">
+      {list.map((p) => (
+        <li>
+          <a class="post-link" href={`/blog/${p.slug}/`}>
+            <time class="when" datetime={p.date}>{formatDate(p.date)}</time>
+            <div>
+              <h2>{p.title}</h2>
+              {p.summary && <p>{p.summary}</p>}
+            </div>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Base>

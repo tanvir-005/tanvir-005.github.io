@@ -1,0 +1,18 @@
+name = "portfolio-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "portfolio"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+[vars]
+ALLOWED_ORIGINS = "https://tanvir-005.github.io,http://localhost:4321,http://localhost:5173"
+GITHUB_REPO = "tanvir-005/tanvir-005.github.io"
+GITHUB_BRANCH = "main"
+
+# Secrets (set with `wrangler secret put <NAME>`):
+#   JWT_SECRET      long random string
+#   VISITOR_SALT    long random string
+#   GITHUB_TOKEN    fine-grained token with "Contents: read and write" on the site repo

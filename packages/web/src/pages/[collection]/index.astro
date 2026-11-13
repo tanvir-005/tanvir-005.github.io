@@ -1,0 +1,83 @@
+---
+import Base from '../../layouts/Base.astro'
+import Board from '../../components/Board.astro'
+import { COLLECTIONS, byType, hrefFor, truncate } from '../../lib/content'
+
+export function getStaticPaths() {
+  return Object.keys(COLLECTIONS)
+    .filter((collection) => byType(COLLECTIONS[collection].type).length > 0)
+    .map((collection) => ({ params: { collection } }))
+}
+
+const { collection } = Astro.params
+const c = COLLECTIONS[collection!]
+const items = byType(c.type)
+const isContests = c.type === 'contest'
+const site = Astro.site!.toString().replace(/\/$/, '')
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: site + '/' },
+      { '@type': 'ListItem', position: 2, name: c.title, item: `${site}/${collection}/` }
+    ]
+  }
+]
+---
+<Base title={c.title} description={c.lead} jsonLd={jsonLd}>
+  <div class="wrap page">
+    <header class="page-head">
+      <p class="crumbs"><a href="/">Home</a> / {c.title}</p>
+      <h1>{c.title}</h1>
+      <p class="lead">{c.lead}</p>
+    </header>
+
+    {isContests ? (
+      <>
+        <Board contests={items} heading="Rank by contest" />
+        <div class="table-wrap">
+          <table class="ledger-table">
+            <thead>
+              <tr><th>Rank</th><th>Contest</th><th>Team</th><th>Date</th><th>Standings</th></tr>
+            </thead>
+            <tbody>
+              {items.map((e) => {
+                const href = hrefFor(collection!, e)
+                return (
+                  <tr>
+                    <td class="num">{e.data.rank}</td>
+                    <td>{href ? <a href={href}>{e.title}</a> : e.title}</td>
+                    <td>{e.data.team}</td>
+                    <td class="date">{e.date}</td>
+                    <td>{e.data.link ? <a href={e.data.link} rel="noopener">Open</a> : ''}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </>
+    ) : (
+      <ul class="work-list">
+        {items.map((e) => {
+          const href = hrefFor(collection!, e)
+          const Tag = href ? 'a' : 'div'
+          const sub = e.data.subtitle || e.data.organization || e.data.organizer
+          return (
+            <li>
+              <Tag class="work" href={href ?? undefined}>
+                <div>
+                  <h3>{e.title}</h3>
+                  {sub && <p class="sub">{sub}</p>}
+                  {e.date && <p class="stack">{e.date}</p>}
+                </div>
+                <p class="desc">{truncate(e.summary, 260)}</p>
+              </Tag>
+            </li>
+          )
+        })}
+      </ul>
+    )}
+  </div>
+</Base>
