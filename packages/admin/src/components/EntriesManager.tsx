@@ -105,7 +105,7 @@ export function EntriesManager({ type }: { type: string }) {
               type={type}
               config={config}
               entry={editing === 'new' ? undefined : editing}
-              onSubmit={(p) => save.mutateAsync(p).catch(() => {})}
+              onSubmit={async (p) => { await save.mutateAsync(p).catch(() => {}) }}
               onCancel={() => setEditing(null)}
             />
           )}

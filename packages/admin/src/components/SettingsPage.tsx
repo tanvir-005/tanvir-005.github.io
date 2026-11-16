@@ -25,7 +25,7 @@ function ChangeSequence({ cfg }: { cfg: Cfg }) {
     if (!seq) return
     if (step === 'current') { current.current = seq; setStep('new'); return }
     if (step === 'new') {
-      if (seq.length < 3) return toast.error('Use at least 3 symbols.')
+      if (seq.length < 3) { toast.error('Use at least 3 symbols.'); return }
       next.current = seq
       setStep('confirm')
       return
